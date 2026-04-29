@@ -2,11 +2,13 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY . .
-
+RUN npm i -g cross-env
+COPY ./package* .
 # we are using npm ci instead of npm i because npm ci uses package.lock very strictly
 RUN npm ci
-RUN npm i -g cross-env
+
+COPY . .
+
 # Adding EXPOSE 3000 is just for clarity, it actually doesnt makes any difference
 EXPOSE 3000
 RUN npm run build
