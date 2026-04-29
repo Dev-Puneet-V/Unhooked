@@ -7,8 +7,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
+    "docker-build": "docker build -t unhooked-server .",
+    "start-docker": "npm run docker-build && docker run -e PORT=3000 -p 3000:3000 unhooked-server",
     "start": "cross-env NODE_ENV=production node dist/index.js",
-    "start-dev": "cross-env NODE_ENV=development tsx watch index.ts",
+    "start-dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
     "start-test": "cross-env NODE_ENV=test node dist/index.js"
   },
   "keywords": [],
@@ -17,12 +19,14 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^6.0.3"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "module-alias": "^2.3.4"
+    "pg": "^8.20.0"
   }
 }

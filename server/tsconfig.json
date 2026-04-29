@@ -4,11 +4,9 @@
     "moduleResolution": "NodeNext",
     "target": "ESNext",
     "types": ["node"],
+    "rootDir": "src",
+    "outDir": "dist",
     "strict": true,
-    "verbatimModuleSyntax": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "verbatimModuleSyntax": true
   }
 }
