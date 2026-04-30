@@ -12,4 +12,4 @@ COPY . .
 # Adding EXPOSE 3000 is just for clarity, it actually doesnt makes any difference
 EXPOSE 3000
 RUN npm run build
-CMD ["npm", "start"]
+CMD ["npm", "run", "start-dev"]

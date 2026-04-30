@@ -7,6 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
+    "docker-compose-dev": "docker compose --env-file ./src/shared/environment/.env.development up --build",
+    "docker-compose-pro": "docker compose --env-file ./src/shared/environment/.env.production up --build",
     "docker-build": "docker build -t unhooked-server .",
     "start-docker": "npm run docker-build && docker run -e PORT=3000 -p 3000:3000 unhooked-server",
     "start": "cross-env NODE_ENV=production node dist/index.js",

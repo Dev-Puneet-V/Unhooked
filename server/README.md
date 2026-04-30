@@ -21,3 +21,6 @@ In case of any changes you can retry building docker again
 In case above feels complex, just execute below command and thats it:
 
 `npm run start-docker`
+
+You can also use `docker compose`
+- use the following command: `npm run docker-compose-dev`
