@@ -28,9 +28,6 @@ This file tracks things we are intentionally not implementing right now. Each it
 - Immediate logout of already-issued access tokens
   - Deferred because short access-token TTLs are acceptable for MVP. Revisit if security requirements become stricter.
 
-- Platform-managed storage encryption key
-  - Deferred because the app does not yet have Keychain/Keystore wiring. Current MMKV storage is encrypted with a centralized app key; later store or derive this key through platform secure storage.
-
 ## Mobile UI
 
 - Final Figma-quality auth design

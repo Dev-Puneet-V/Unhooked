@@ -25,8 +25,8 @@ const setAuthorizationHeader = (
   };
 };
 
-api.interceptors.request.use(config => {
-  const accessToken = tokenService.getAccessToken();
+api.interceptors.request.use(async config => {
+  const accessToken = await tokenService.getAccessToken();
 
   if (accessToken?.trim()) {
     config.headers.Authorization = withBearerToken(accessToken);
@@ -78,10 +78,10 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const refreshToken = tokenService.getRefreshToken();
+      const refreshToken = await tokenService.getRefreshToken();
 
       if (!refreshToken) {
-        tokenService.clearTokens();
+        await tokenService.clearTokens();
         return Promise.reject(error);
       }
 
@@ -90,7 +90,7 @@ api.interceptors.response.use(
         {refreshToken},
       );
 
-      tokenService.setTokens(response.data);
+      await tokenService.setTokens(response.data);
 
       queue.forEach(request => request.resolve(response.data.accessToken));
       queue = [];
@@ -101,7 +101,7 @@ api.interceptors.response.use(
     } catch (err) {
       queue.forEach(request => request.reject(err));
       queue = [];
-      tokenService.clearTokens();
+      await tokenService.clearTokens();
 
       return Promise.reject(err);
     } finally {

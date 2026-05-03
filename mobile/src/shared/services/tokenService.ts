@@ -1,27 +1,39 @@
 import {STORAGE_KEYS} from '../constants';
-import {secureStorage} from '../lib/secureStorage';
+import {StorageService, storageService} from './storageService';
 
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
 
-export const tokenService = {
+export class TokenService {
+  constructor(private storage: StorageService) {}
+
   getAccessToken() {
-    return secureStorage.getString(STORAGE_KEYS.accessToken);
-  },
+    return this.storage.get(STORAGE_KEYS.accessToken, {secure: true});
+  }
 
   getRefreshToken() {
-    return secureStorage.getString(STORAGE_KEYS.refreshToken);
-  },
+    return this.storage.get(STORAGE_KEYS.refreshToken, {secure: true});
+  }
 
-  setTokens(tokens: AuthTokens) {
-    secureStorage.set(STORAGE_KEYS.accessToken, tokens.accessToken);
-    secureStorage.set(STORAGE_KEYS.refreshToken, tokens.refreshToken);
-  },
+  async setTokens(tokens: AuthTokens) {
+    await Promise.all([
+      this.storage.set(STORAGE_KEYS.accessToken, tokens.accessToken, {
+        secure: true,
+      }),
+      this.storage.set(STORAGE_KEYS.refreshToken, tokens.refreshToken, {
+        secure: true,
+      }),
+    ]);
+  }
 
-  clearTokens() {
-    secureStorage.remove(STORAGE_KEYS.accessToken);
-    secureStorage.remove(STORAGE_KEYS.refreshToken);
-  },
-};
+  async clearTokens() {
+    await Promise.all([
+      this.storage.remove(STORAGE_KEYS.accessToken, {secure: true}),
+      this.storage.remove(STORAGE_KEYS.refreshToken, {secure: true}),
+    ]);
+  }
+}
+
+export const tokenService = new TokenService(storageService);

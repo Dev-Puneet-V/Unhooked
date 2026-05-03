@@ -1,7 +1,13 @@
 export const STORAGE_CONFIG = {
-  secureStorageId: 'unhooked.secure.auth',
-  encryptionKey: 'unhooked-mobile-auth-v1',
-  encryptionType: 'AES-256',
+  normalStorageId: 'unhooked.normal',
+  keychainServicePrefix: 'com.unhooked.mobile',
+} as const;
+
+export const STORAGE_AUTH_PROMPT = {
+  title: 'Authenticate',
+  subtitle: 'Confirm it is you',
+  description: 'Use biometrics to access this secure data.',
+  cancel: 'Cancel',
 } as const;
 
 export const STORAGE_KEYS = {
