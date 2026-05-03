@@ -6,32 +6,32 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-export class TokenService {
+class TokenService {
   constructor(private storage: StorageService) {}
 
   getAccessToken() {
-    return this.storage.get(STORAGE_KEYS.accessToken, {secure: true});
+    return this.storage.get(STORAGE_KEYS.accessToken, {mode: 'secure'});
   }
 
   getRefreshToken() {
-    return this.storage.get(STORAGE_KEYS.refreshToken, {secure: true});
+    return this.storage.get(STORAGE_KEYS.refreshToken, {mode: 'secure'});
   }
 
   async setTokens(tokens: AuthTokens) {
     await Promise.all([
       this.storage.set(STORAGE_KEYS.accessToken, tokens.accessToken, {
-        secure: true,
+        mode: 'secure',
       }),
       this.storage.set(STORAGE_KEYS.refreshToken, tokens.refreshToken, {
-        secure: true,
+        mode: 'secure',
       }),
     ]);
   }
 
   async clearTokens() {
     await Promise.all([
-      this.storage.remove(STORAGE_KEYS.accessToken, {secure: true}),
-      this.storage.remove(STORAGE_KEYS.refreshToken, {secure: true}),
+      this.storage.remove(STORAGE_KEYS.accessToken, {mode: 'secure'}),
+      this.storage.remove(STORAGE_KEYS.refreshToken, {mode: 'secure'}),
     ]);
   }
 }
