@@ -1,0 +1,21 @@
+CREATE TABLE users (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name TEXT,
+    email VARCHAR(254) UNIQUE NOT NULL,
+    password_hash TEXT,
+    username TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE login_sessions (
+      id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+      user_id INT REFERENCES users(id),
+      refresh_token_hash TEXT NOT NULL,
+      device_id TEXT NOT NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      revoked_at TIMESTAMPTZ
+    );
