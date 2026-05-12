@@ -15,6 +15,20 @@ const api = axios.create({
 
 const withBearerToken = (token: string) => `${AUTH_HEADER.bearerPrefix} ${token}`;
 
+const AUTH_REFRESH_SKIP_ENDPOINTS = [
+  API_ENDPOINTS.auth.google,
+  API_ENDPOINTS.auth.logout,
+  API_ENDPOINTS.auth.refresh,
+];
+
+const shouldSkipRefresh = (url?: string) => {
+  if (!url) {
+    return false;
+  }
+
+  return AUTH_REFRESH_SKIP_ENDPOINTS.some(endpoint => url.includes(endpoint));
+};
+
 const setAuthorizationHeader = (
   request: AxiosRequestConfig,
   accessToken: string,
@@ -56,6 +70,7 @@ api.interceptors.response.use(
     if (
       error.response?.status !== HTTP_STATUS.unauthorized ||
       !originalRequest ||
+      shouldSkipRefresh(originalRequest.url) ||
       originalRequest._retry
     ) {
       return Promise.reject(error);

@@ -27,8 +27,11 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
     "zod": "^4.4.2"
   }

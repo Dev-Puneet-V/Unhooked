@@ -1,10 +1,20 @@
+import {Platform} from 'react-native';
+
+const localApiBaseURL =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000/api/v1'
+    : 'http://localhost:3000/api/v1';
+
 export const API_CONFIG = {
-  baseURL: 'http://localhost:3000/api/v1',
+  baseURL: localApiBaseURL,
   timeoutMs: 10000,
 } as const;
 
 export const API_ENDPOINTS = {
   auth: {
+    google: '/auth/google',
+    logout: '/auth/logout',
+    me: '/auth/me',
     refresh: '/auth/refresh',
   },
 } as const;

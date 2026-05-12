@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -8,10 +9,50 @@ import {
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useState} from 'react';
 
+import {signInWithGoogle} from '../lib/google';
+import api from '../../../shared/lib/api';
+import {API_ENDPOINTS} from '../../../shared/constants';
+import {tokenService} from '../../../shared/services/tokenService';
 import {theme} from '../../../shared/theme';
 
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
 const AuthScreen = () => {
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
+
+  const handleGoogleSignIn = async () => {
+    setErrorMessage(undefined);
+    setIsGoogleLoading(true);
+
+    try {
+      const idToken = await signInWithGoogle();
+
+      if (!idToken) {
+        return;
+      }
+
+      const response = await api.post<unknown, AuthResponse>(
+        API_ENDPOINTS.auth.google,
+        {idToken},
+      );
+
+      await tokenService.setTokens({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      });
+    } catch {
+      setErrorMessage('Google sign-in failed. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -26,10 +67,27 @@ const AuthScreen = () => {
         </View>
 
         <View style={styles.form}>
-          <Pressable style={styles.googleButton}>
+          <Pressable
+            disabled={isGoogleLoading}
+            onPress={handleGoogleSignIn}
+            style={({pressed}) => [
+              styles.googleButton,
+              (pressed || isGoogleLoading) && styles.buttonPressed,
+            ]}>
             <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            <Text style={styles.googleButtonText}>
+              {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+            </Text>
+            {isGoogleLoading ? (
+              <ActivityIndicator color={theme.colors.primary} size="small" />
+            ) : null}
           </Pressable>
+
+          {errorMessage ? (
+            <Text accessibilityRole="alert" style={styles.errorText}>
+              {errorMessage}
+            </Text>
+          ) : null}
 
           <View style={styles.dividerRow}>
             <View style={styles.divider} />
@@ -120,6 +178,9 @@ const styles = StyleSheet.create({
     height: theme.control.height,
     justifyContent: 'center',
   },
+  buttonPressed: {
+    opacity: 0.72,
+  },
   googleIcon: {
     color: theme.colors.primary,
     fontSize: theme.typography.size.xl,
@@ -129,6 +190,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: theme.typography.size.lg,
     fontWeight: theme.typography.weight.bold,
+  },
+  errorText: {
+    color: theme.colors.danger,
+    fontSize: theme.typography.size.sm,
+    fontWeight: theme.typography.weight.semibold,
+    textAlign: 'center',
   },
   dividerRow: {
     alignItems: 'center',

@@ -11,6 +11,7 @@ export const theme = {
     textPlaceholder: '#8a94a6',
     border: '#d7dce5',
     primary: '#2563eb',
+    danger: '#b42318',
     onPrimary: '#ffffff',
   },
   spacing: {
