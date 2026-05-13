@@ -4,6 +4,7 @@ export interface AuthUserRecord {
   id: number;
   email: string;
   name: string | null;
+  password_hash: string | null;
   username: string;
 }
 
@@ -16,7 +17,7 @@ export interface LoginSessionRecord {
 export const findUserByEmail = async (email: string) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      SELECT id, email, name, username
+      SELECT id, email, name, password_hash, username
       FROM users
       WHERE email = $1
       LIMIT 1
@@ -30,7 +31,7 @@ export const findUserByEmail = async (email: string) => {
 export const findUserById = async (id: number) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      SELECT id, email, name, username
+      SELECT id, email, name, password_hash, username
       FROM users
       WHERE id = $1
       LIMIT 1
@@ -59,9 +60,26 @@ export const createGoogleUser = async (params: {
     `
       INSERT INTO users (email, name, username, password_hash)
       VALUES ($1, $2, $3, NULL)
-      RETURNING id, email, name, username
+      RETURNING id, email, name, password_hash, username
     `,
     [params.email, params.name, params.username]
+  );
+
+  return result.rows[0];
+};
+
+export const createEmailUser = async (params: {
+  email: string;
+  passwordHash: string;
+  username: string;
+}) => {
+  const result = await pool.query<AuthUserRecord>(
+    `
+      INSERT INTO users (email, name, username, password_hash)
+      VALUES ($1, NULL, $2, $3)
+      RETURNING id, email, name, password_hash, username
+    `,
+    [params.email, params.username, params.passwordHash]
   );
 
   return result.rows[0];

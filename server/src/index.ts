@@ -1,14 +1,9 @@
-import express from "express";
 import ENV_VARIABLES_CONFIG from "./config/environment.js";
-import { pool } from "./config/db.js";
-import authRouter from "./modules/auth/auth.route.js";
+import { createApp } from "./app.js";
 
-const app = express();
-app.use(express.json());
-app.use("/api/v1/auth", authRouter);
+const app = createApp();
 // (async () => {
 // await pool.query(`
-    
 // `);
 // })()
 

@@ -6,7 +6,7 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-class TokenService {
+export class TokenService {
   constructor(private storage: StorageService) {}
 
   getAccessToken() {

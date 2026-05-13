@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  emailLoginController,
   googleLoginController,
   logoutController,
   meController,
@@ -9,6 +10,7 @@ import { authenticateAccessToken } from "../../shared/middleware/auth.middleware
 
 const router = express.Router();
 
+router.post("/email", emailLoginController);
 router.post("/google", googleLoginController);
 router.post("/refresh", refreshTokenController);
 router.post("/logout", logoutController);

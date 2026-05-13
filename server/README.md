@@ -1,4 +1,4 @@
-# Unhooked api server
+docker ps -a# Unhooked api server
 It follows mvc architecture. Tech stack used :
 - `POSTGRES`
 - `EXPRESS`

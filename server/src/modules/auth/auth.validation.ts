@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const emailAuthSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
-  password: z.string().min(8).max(20)
+  password: z.string().min(8).max(128)
 });
 
 export const googleAuthSchema = z.object({

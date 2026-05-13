@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "tsc",
     "docker-compose-dev": "docker compose --env-file ./src/shared/environment/.env.development up --build",
     "docker-compose-pro": "docker compose --env-file ./src/shared/environment/.env.production up --build",
@@ -22,12 +23,17 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.0",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-auth-library": "^10.6.2",

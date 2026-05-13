@@ -1,17 +1,36 @@
 import type { Request, Response } from "express";
 
 import type {
+  EmailLoginRequestDto,
   GoogleLoginRequestDto,
   RefreshTokenRequestDto
 } from "./auth.dto.js";
-import { googleAuthSchema, refreshTokenSchema } from "./auth.validation.js";
+import {
+  emailAuthSchema,
+  googleAuthSchema,
+  refreshTokenSchema
+} from "./auth.validation.js";
 import {
   getAuthenticatedUser,
+  loginWithEmail,
   loginWithGoogle,
   logoutWithRefreshToken,
   refreshAuthTokens
 } from "./auth.service.js";
 import type { AuthenticatedRequest } from "../../shared/middleware/auth.middleware.js";
+
+export const emailLoginController = async (req: Request, res: Response) => {
+  try {
+    const body: EmailLoginRequestDto = emailAuthSchema.parse(req.body);
+    const response = await loginWithEmail(body);
+
+    res.status(200).json(response);
+  } catch {
+    res.status(401).json({
+      message: "Email sign-in failed"
+    });
+  }
+};
 
 export const googleLoginController = async (req: Request, res: Response) => {
   try {

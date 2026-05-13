@@ -1,10 +1,12 @@
 import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 
 import ENV_VARIABLES_CONFIG from "../../config/environment.js";
 import type { AuthContextDto, AuthResponseDto } from "./auth.dto.js";
 import {
+  createEmailUser,
   createGoogleUser,
   createLoginSession,
   findActiveSessionByRefreshTokenHash,
@@ -19,6 +21,7 @@ import {
 const googleClient = new OAuth2Client();
 const accessTokenTtlSeconds = 15 * 60;
 const refreshTokenTtlDays = 60;
+const passwordSaltRounds = 12;
 
 const requireEnv = (value: string | undefined, name: string) => {
   if (!value?.trim() || value.startsWith("PASTE_")) {
@@ -135,6 +138,64 @@ const toAuthResponse = async (
   };
 };
 
+const createAuthSession = async (user: AuthUserRecord) => {
+  const refreshToken = createRefreshToken();
+  const session = await createLoginSession({
+    userId: user.id,
+    refreshTokenHash: hashRefreshToken(refreshToken),
+    deviceId: crypto.randomUUID(),
+    expiresAt: getRefreshTokenExpiry()
+  });
+
+  return {
+    accessToken: signAccessToken({
+      userId: user.id,
+      sessionId: session.id,
+      deviceId: session.device_id
+    }),
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username
+    }
+  };
+};
+
+export const loginWithEmail = async (params: {
+  email: string;
+  password: string;
+}): Promise<AuthResponseDto> => {
+  const existingUser = await findUserByEmail(params.email);
+
+  if (existingUser) {
+    if (!existingUser.password_hash) {
+      throw new Error("User uses a different sign-in method");
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      params.password,
+      existingUser.password_hash
+    );
+
+    if (!isPasswordValid) {
+      throw new Error("Invalid credentials");
+    }
+
+    return createAuthSession(existingUser);
+  }
+
+  const passwordHash = await bcrypt.hash(params.password, passwordSaltRounds);
+  const user = await createEmailUser({
+    email: params.email,
+    passwordHash,
+    username: await generateUniqueUsername(params.email)
+  });
+
+  return createAuthSession(user);
+};
+
 export const loginWithGoogle = async (
   idToken: string
 ): Promise<AuthResponseDto> => {
@@ -166,28 +227,7 @@ export const loginWithGoogle = async (
       username: await generateUniqueUsername(email)
     }));
 
-  const refreshToken = createRefreshToken();
-  const session = await createLoginSession({
-    userId: user.id,
-    refreshTokenHash: hashRefreshToken(refreshToken),
-    deviceId: crypto.randomUUID(),
-    expiresAt: getRefreshTokenExpiry()
-  });
-
-  return {
-    accessToken: signAccessToken({
-      userId: user.id,
-      sessionId: session.id,
-      deviceId: session.device_id
-    }),
-    refreshToken,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      username: user.username
-    }
-  };
+  return createAuthSession(user);
 };
 
 export const refreshAuthTokens = async (

@@ -16,6 +16,7 @@ const api = axios.create({
 const withBearerToken = (token: string) => `${AUTH_HEADER.bearerPrefix} ${token}`;
 
 const AUTH_REFRESH_SKIP_ENDPOINTS = [
+  API_ENDPOINTS.auth.email,
   API_ENDPOINTS.auth.google,
   API_ENDPOINTS.auth.logout,
   API_ENDPOINTS.auth.refresh,

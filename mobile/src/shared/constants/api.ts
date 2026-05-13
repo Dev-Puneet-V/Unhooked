@@ -12,6 +12,7 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   auth: {
+    email: '/auth/email',
     google: '/auth/google',
     logout: '/auth/logout',
     me: '/auth/me',

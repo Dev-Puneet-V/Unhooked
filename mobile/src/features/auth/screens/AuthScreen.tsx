@@ -23,8 +23,45 @@ interface AuthResponse {
 }
 
 const AuthScreen = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
+
+  const saveAuthResponse = async (response: AuthResponse) => {
+    await tokenService.setTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+    });
+  };
+
+  const handleEmailSignIn = async () => {
+    setErrorMessage(undefined);
+
+    if (!email.trim() || password.length < 8) {
+      setErrorMessage('Enter a valid email and at least 8 characters.');
+      return;
+    }
+
+    setIsEmailLoading(true);
+
+    try {
+      const response = await api.post<unknown, AuthResponse>(
+        API_ENDPOINTS.auth.email,
+        {
+          email,
+          password,
+        },
+      );
+
+      await saveAuthResponse(response);
+    } catch {
+      setErrorMessage('Email sign-in failed. Please check your details.');
+    } finally {
+      setIsEmailLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setErrorMessage(undefined);
@@ -42,10 +79,7 @@ const AuthScreen = () => {
         {idToken},
       );
 
-      await tokenService.setTokens({
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
-      });
+      await saveAuthResponse(response);
     } catch {
       setErrorMessage('Google sign-in failed. Please try again.');
     } finally {
@@ -68,7 +102,7 @@ const AuthScreen = () => {
 
         <View style={styles.form}>
           <Pressable
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isEmailLoading}
             onPress={handleGoogleSignIn}
             style={({pressed}) => [
               styles.googleButton,
@@ -101,26 +135,38 @@ const AuthScreen = () => {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
+              onChangeText={setEmail}
               placeholder="you@example.com"
               placeholderTextColor={theme.colors.textPlaceholder}
               style={styles.input}
               textContentType="emailAddress"
+              value={email}
             />
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Password</Text>
             <TextInput
+              onChangeText={setPassword}
               placeholder="Minimum 8 characters"
               placeholderTextColor={theme.colors.textPlaceholder}
               secureTextEntry
               style={styles.input}
               textContentType="password"
+              value={password}
             />
           </View>
 
-          <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Continue</Text>
+          <Pressable
+            disabled={isEmailLoading || isGoogleLoading}
+            onPress={handleEmailSignIn}
+            style={({pressed}) => [
+              styles.primaryButton,
+              (pressed || isEmailLoading) && styles.buttonPressed,
+            ]}>
+            <Text style={styles.primaryButtonText}>
+              {isEmailLoading ? 'Signing in...' : 'Continue'}
+            </Text>
           </Pressable>
 
           <Text style={styles.helperText}>
