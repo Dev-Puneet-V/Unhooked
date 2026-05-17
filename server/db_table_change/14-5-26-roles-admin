@@ -1,0 +1,31 @@
+CREATE TABLE roles (
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code VARCHAR(30) NOT NULL UNIQUE,
+  title VARCHAR(50) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO roles (code, title, description)
+VALUES
+  ('admin', 'Admin', 'Can manage quizzes and questions'),
+  ('user', 'User', 'Can attempt quizzes');
+
+ALTER TABLE users
+ADD COLUMN role_id INT REFERENCES roles(id);
+
+UPDATE users
+SET role_id = (SELECT id FROM roles WHERE code = 'user')
+WHERE role_id IS NULL;
+
+INSERT INTO users (name, email, password_hash, username, role_id)
+VALUES (
+  'Unhooked Admin',
+  'admin@unhooked.local',
+  '$2b$12$7nJY8iKLgGF7nRXpVj5RVuX./n7kgPntHdBq2TAydCs8CjxPwfPtu',
+  'unhookedadmin',
+  (SELECT id FROM roles WHERE code = 'admin')
+);
+
+ALTER TABLE users
+ALTER COLUMN role_id SET NOT NULL;

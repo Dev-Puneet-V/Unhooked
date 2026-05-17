@@ -5,6 +5,7 @@ import type {
   googleAuthSchema,
   refreshTokenSchema
 } from "./auth.validation.js";
+import type { AuthRole } from "./auth.constants.js";
 
 export type EmailLoginRequestDto = z.infer<typeof emailAuthSchema>;
 
@@ -17,6 +18,7 @@ export interface AuthUserDto {
   email: string;
   name: string | null;
   username: string;
+  role: AuthRole;
 }
 
 export interface AuthContextDto {

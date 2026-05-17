@@ -1,4 +1,5 @@
 import { pool } from "../../config/db.js";
+import type { AuthRole } from "./auth.constants.js";
 
 export interface AuthUserRecord {
   id: number;
@@ -6,6 +7,7 @@ export interface AuthUserRecord {
   name: string | null;
   password_hash: string | null;
   username: string;
+  role_code: AuthRole;
 }
 
 export interface LoginSessionRecord {
@@ -17,9 +19,10 @@ export interface LoginSessionRecord {
 export const findUserByEmail = async (email: string) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      SELECT id, email, name, password_hash, username
+      SELECT users.id, users.email, users.name, users.password_hash, users.username, roles.code AS role_code
       FROM users
-      WHERE email = $1
+      JOIN roles ON roles.id = users.role_id
+      WHERE users.email = $1
       LIMIT 1
     `,
     [email]
@@ -31,9 +34,10 @@ export const findUserByEmail = async (email: string) => {
 export const findUserById = async (id: number) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      SELECT id, email, name, password_hash, username
+      SELECT users.id, users.email, users.name, users.password_hash, users.username, roles.code AS role_code
       FROM users
-      WHERE id = $1
+      JOIN roles ON roles.id = users.role_id
+      WHERE users.id = $1
       LIMIT 1
     `,
     [id]
@@ -58,9 +62,15 @@ export const createGoogleUser = async (params: {
 }) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      INSERT INTO users (email, name, username, password_hash)
-      VALUES ($1, $2, $3, NULL)
-      RETURNING id, email, name, password_hash, username
+      INSERT INTO users (email, name, username, password_hash, role_id)
+      VALUES ($1, $2, $3, NULL, (SELECT id FROM roles WHERE code = 'user'))
+      RETURNING
+        id,
+        email,
+        name,
+        password_hash,
+        username,
+        (SELECT code FROM roles WHERE code = 'user') AS role_code
     `,
     [params.email, params.name, params.username]
   );
@@ -75,9 +85,15 @@ export const createEmailUser = async (params: {
 }) => {
   const result = await pool.query<AuthUserRecord>(
     `
-      INSERT INTO users (email, name, username, password_hash)
-      VALUES ($1, NULL, $2, $3)
-      RETURNING id, email, name, password_hash, username
+      INSERT INTO users (email, name, username, password_hash, role_id)
+      VALUES ($1, NULL, $2, $3, (SELECT id FROM roles WHERE code = 'user'))
+      RETURNING
+        id,
+        email,
+        name,
+        password_hash,
+        username,
+        (SELECT code FROM roles WHERE code = 'user') AS role_code
     `,
     [params.email, params.username, params.passwordHash]
   );
@@ -149,17 +165,28 @@ export const revokeSessionByRefreshTokenHash = async (
 
 export const rotateRefreshToken = async (params: {
   sessionId: number;
+  currentRefreshTokenHash: string;
   refreshTokenHash: string;
   expiresAt: Date;
 }) => {
-  await pool.query(
+  const result = await pool.query(
     `
       UPDATE login_sessions
       SET refresh_token_hash = $1,
           expires_at = $2,
           updated_at = NOW()
       WHERE id = $3
+        AND refresh_token_hash = $4
+        AND is_active = TRUE
+        AND expires_at > NOW()
     `,
-    [params.refreshTokenHash, params.expiresAt, params.sessionId]
+    [
+      params.refreshTokenHash,
+      params.expiresAt,
+      params.sessionId,
+      params.currentRefreshTokenHash
+    ]
   );
+
+  return (result.rowCount ?? 0) > 0;
 };

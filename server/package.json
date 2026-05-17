@@ -12,6 +12,10 @@
     "docker-compose-pro": "docker compose --env-file ./src/shared/environment/.env.production up --build",
     "docker-build": "docker build -t unhooked-server .",
     "start-docker": "npm run docker-build && docker run -e PORT=3000 -p 3000:3000 unhooked-server",
+    "migrate": "cross-env NODE_ENV=development tsx src/scripts/migrate.ts",
+    "migrate:baseline": "cross-env NODE_ENV=development tsx src/scripts/migrate.ts --baseline",
+    "migrate:prod": "cross-env NODE_ENV=production tsx src/scripts/migrate.ts",
+    "migrate:prod:baseline": "cross-env NODE_ENV=production tsx src/scripts/migrate.ts --baseline",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start-dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
     "start-test": "cross-env NODE_ENV=test node dist/index.js"

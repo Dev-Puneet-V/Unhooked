@@ -1,0 +1,26 @@
+CREATE TABLE quiz_statuses (
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code VARCHAR(30) NOT NULL UNIQUE,
+  title VARCHAR(50) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO quiz_statuses (code, title, description)
+VALUES
+  ('draft', 'Draft', 'Quiz is being prepared and not visible to users'),
+  ('published', 'Published', 'Quiz is visible but not live yet'),
+  ('closed', 'Closed', 'Quiz attempt window is over'),
+  ('cancelled', 'Cancelled', 'Quiz will not be used');
+
+CREATE TABLE quizzes (
+  id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  starts_at TIMESTAMPTZ NOT NULL,
+  ends_at TIMESTAMPTZ NOT NULL,
+  status_id INT NOT NULL REFERENCES quiz_statuses(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT quizzes_time_check CHECK (ends_at > starts_at)
+);

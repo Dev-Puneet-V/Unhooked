@@ -24,3 +24,16 @@ In case above feels complex, just execute below command and thats it:
 
 You can also use `docker compose`
 - use the following command: `npm run docker-compose-dev`
+
+## Setup without Docker
+For day-to-day development, use Neon Postgres so Docker does not need to run locally.
+
+1. Create a Neon database with the same database name, user, and password values from `src/shared/environment/.env.development`.
+2. Put the Neon endpoint in `POSTGRES_HOST` and keep `POSTGRES_SSL=true`.
+3. Install dependencies with `npm install`.
+4. Run migrations with `npm run migrate`.
+5. Start the server with `npm run start-dev`.
+
+You can also use a full Neon connection string by setting `DATABASE_URL`. If `DATABASE_URL` contains `sslmode=require`, the server will enable SSL automatically.
+
+If you are connecting to a database that already has the current tables, run `npm run migrate:baseline` once instead of rerunning old `CREATE TABLE` migrations.

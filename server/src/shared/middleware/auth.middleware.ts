@@ -1,7 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 
+import type { AuthRole } from "../../modules/auth/auth.constants.js";
 import type { AuthContextDto } from "../../modules/auth/auth.dto.js";
-import { verifyAccessToken } from "../../modules/auth/auth.service.js";
+import {
+  getAuthenticatedUser,
+  verifyAccessToken
+} from "../../modules/auth/auth.service.js";
 
 export interface AuthenticatedRequest extends Request {
   auth: AuthContextDto;
@@ -35,3 +39,23 @@ export const authenticateAccessToken = (
     });
   }
 };
+
+export const authorizeRole =
+  (role: AuthRole) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await getAuthenticatedUser((req as AuthenticatedRequest).auth);
+
+      if (user.role !== role) {
+        res.status(403).json({
+          message: "You are not allowed to perform this action"
+        });
+        return;
+      }
+
+      next();
+    } catch {
+      res.status(401).json({
+        message: "Access token is invalid"
+      });
+    }
+  };

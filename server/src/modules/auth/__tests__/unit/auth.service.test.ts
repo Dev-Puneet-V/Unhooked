@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AUTH_ROLES } from "../../auth.constants.js";
+
 const verifyIdToken = vi.fn();
 
 vi.mock("google-auth-library", () => ({
@@ -54,7 +56,8 @@ const user = {
   email: "puneet@example.com",
   name: null,
   password_hash: "password-hash",
-  username: "puneet"
+  username: "puneet",
+  role_code: AUTH_ROLES.user
 };
 
 const session = {
@@ -71,6 +74,7 @@ describe("auth service", () => {
     vi.clearAllMocks();
     vi.mocked(repository.usernameExists).mockResolvedValue(false);
     vi.mocked(repository.createLoginSession).mockResolvedValue(session);
+    vi.mocked(repository.rotateRefreshToken).mockResolvedValue(true);
     vi.mocked(bcrypt.hash).mockResolvedValue("new-password-hash" as never);
     vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
   });
@@ -107,7 +111,8 @@ describe("auth service", () => {
         id: user.id,
         email: user.email,
         name: user.name,
-        username: user.username
+        username: user.username,
+        role: user.role_code
       }
     });
   });
@@ -126,8 +131,27 @@ describe("auth service", () => {
     expect(repository.createLoginSession).not.toHaveBeenCalled();
   });
 
+  it("rejects email login when account uses another sign-in method", async () => {
+    vi.mocked(repository.findUserByEmail).mockResolvedValue({
+      ...user,
+      password_hash: null
+    });
+
+    await expect(
+      service.loginWithEmail({
+        email: user.email,
+        password: "password123"
+      })
+    ).rejects.toThrow("User uses a different sign-in method");
+
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+    expect(repository.createLoginSession).not.toHaveBeenCalled();
+  });
+
   it("creates a new email user when no account exists", async () => {
-    vi.mocked(repository.findUserByEmail).mockResolvedValue(undefined);
+    vi.mocked(repository.findUserByEmail).mockResolvedValue(
+      undefined as unknown as typeof user
+    );
     vi.mocked(repository.createEmailUser).mockResolvedValue({
       ...user,
       password_hash: "new-password-hash",
@@ -162,8 +186,47 @@ describe("auth service", () => {
     expect(repository.createGoogleUser).not.toHaveBeenCalled();
   });
 
+  it("rejects Google login when token payload is missing", async () => {
+    verifyIdToken.mockResolvedValue({
+      getPayload: () => undefined
+    });
+
+    await expect(service.loginWithGoogle("google-id-token")).rejects.toThrow(
+      "Google token payload is missing"
+    );
+
+    expect(repository.findUserByEmail).not.toHaveBeenCalled();
+    expect(repository.createGoogleUser).not.toHaveBeenCalled();
+  });
+
+  it("logs in an existing Google user without creating a duplicate", async () => {
+    vi.mocked(repository.findUserByEmail).mockResolvedValue({
+      ...user,
+      password_hash: null
+    });
+    verifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "  PUNEET@example.com ",
+        email_verified: true,
+        name: "Puneet"
+      })
+    });
+
+    await service.loginWithGoogle("google-id-token");
+
+    expect(repository.findUserByEmail).toHaveBeenCalledWith(user.email);
+    expect(repository.createGoogleUser).not.toHaveBeenCalled();
+    expect(repository.createLoginSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: user.id
+      })
+    );
+  });
+
   it("creates a Google user from a verified Google token", async () => {
-    vi.mocked(repository.findUserByEmail).mockResolvedValue(undefined);
+    vi.mocked(repository.findUserByEmail).mockResolvedValue(
+      undefined as unknown as typeof user
+    );
     vi.mocked(repository.createGoogleUser).mockResolvedValue({
       ...user,
       name: "Puneet",
@@ -203,9 +266,50 @@ describe("auth service", () => {
     );
     expect(repository.rotateRefreshToken).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionId: session.id
+        sessionId: session.id,
+        currentRefreshTokenHash: hashToken("refresh-token")
       })
     );
+  });
+
+  it("rejects refresh when refresh token rotation fails", async () => {
+    vi.mocked(repository.findActiveSessionByRefreshTokenHash).mockResolvedValue(
+      session
+    );
+    vi.mocked(repository.findUserById).mockResolvedValue(user);
+    vi.mocked(repository.rotateRefreshToken).mockResolvedValue(false);
+
+    await expect(service.refreshAuthTokens("refresh-token")).rejects.toThrow(
+      "Invalid refresh token"
+    );
+  });
+
+  it("rejects refresh when refresh token is not active", async () => {
+    vi.mocked(repository.findActiveSessionByRefreshTokenHash).mockResolvedValue(
+      undefined as unknown as typeof session
+    );
+
+    await expect(service.refreshAuthTokens("refresh-token")).rejects.toThrow(
+      "Invalid refresh token"
+    );
+
+    expect(repository.findUserById).not.toHaveBeenCalled();
+    expect(repository.rotateRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it("rejects refresh when session user no longer exists", async () => {
+    vi.mocked(repository.findActiveSessionByRefreshTokenHash).mockResolvedValue(
+      session
+    );
+    vi.mocked(repository.findUserById).mockResolvedValue(
+      undefined as unknown as typeof user
+    );
+
+    await expect(service.refreshAuthTokens("refresh-token")).rejects.toThrow(
+      "Session user not found"
+    );
+
+    expect(repository.rotateRefreshToken).not.toHaveBeenCalled();
   });
 
   it("returns the authenticated user without password fields", async () => {
@@ -221,8 +325,62 @@ describe("auth service", () => {
       id: user.id,
       email: user.email,
       name: user.name,
-      username: user.username
+      username: user.username,
+      role: user.role_code
     });
+  });
+
+  it("rejects authenticated user lookup when user does not exist", async () => {
+    vi.mocked(repository.findUserById).mockResolvedValue(
+      undefined as unknown as typeof user
+    );
+
+    await expect(
+      service.getAuthenticatedUser({
+        userId: user.id,
+        sessionId: session.id,
+        deviceId: session.device_id
+      })
+    ).rejects.toThrow("Authenticated user not found");
+  });
+
+  it("verifies a valid access token payload", () => {
+    vi.mocked(jwt.verify).mockReturnValue({
+      sub: String(user.id),
+      sid: String(session.id),
+      did: session.device_id
+    } as never);
+
+    expect(service.verifyAccessToken("access-token")).toEqual({
+      userId: user.id,
+      sessionId: session.id,
+      deviceId: session.device_id
+    });
+
+    expect(jwt.verify).toHaveBeenCalledWith("access-token", "jwt-secret");
+  });
+
+  it("rejects malformed access token payload", () => {
+    vi.mocked(jwt.verify).mockReturnValue({
+      sub: String(user.id),
+      sid: String(session.id)
+    } as never);
+
+    expect(() => service.verifyAccessToken("access-token")).toThrow(
+      "Invalid access token payload"
+    );
+  });
+
+  it("rejects access token payload with non-numeric subject", () => {
+    vi.mocked(jwt.verify).mockReturnValue({
+      sub: "not-a-number",
+      sid: String(session.id),
+      did: session.device_id
+    } as never);
+
+    expect(() => service.verifyAccessToken("access-token")).toThrow(
+      "Invalid access token payload"
+    );
   });
 
   it("hashes refresh token before logout", async () => {

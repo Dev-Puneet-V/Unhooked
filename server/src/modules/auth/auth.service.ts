@@ -71,9 +71,16 @@ export const verifyAccessToken = (accessToken: string): AuthContextDto => {
     throw new Error("Invalid access token payload");
   }
 
+  const userId = Number(payload.sub);
+  const sessionId = Number(payload.sid);
+
+  if (!Number.isInteger(userId) || !Number.isInteger(sessionId)) {
+    throw new Error("Invalid access token payload");
+  }
+
   return {
-    userId: Number(payload.sub),
-    sessionId: Number(payload.sid),
+    userId,
+    sessionId,
     deviceId: payload.did
   };
 };
@@ -112,15 +119,21 @@ const generateUniqueUsername = async (email: string) => {
 
 const toAuthResponse = async (
   user: AuthUserRecord,
-  session: { id: number; device_id: string }
+  session: { id: number; device_id: string },
+  currentRefreshTokenHash: string
 ): Promise<AuthResponseDto> => {
   const refreshToken = createRefreshToken();
 
-  await rotateRefreshToken({
+  const didRotateToken = await rotateRefreshToken({
     sessionId: session.id,
+    currentRefreshTokenHash,
     refreshTokenHash: hashRefreshToken(refreshToken),
     expiresAt: getRefreshTokenExpiry()
   });
+
+  if (!didRotateToken) {
+    throw new Error("Invalid refresh token");
+  }
 
   return {
     accessToken: signAccessToken({
@@ -133,7 +146,8 @@ const toAuthResponse = async (
       id: user.id,
       email: user.email,
       name: user.name,
-      username: user.username
+      username: user.username,
+      role: user.role_code
     }
   };
 };
@@ -158,7 +172,8 @@ const createAuthSession = async (user: AuthUserRecord) => {
       id: user.id,
       email: user.email,
       name: user.name,
-      username: user.username
+      username: user.username,
+      role: user.role_code
     }
   };
 };
@@ -250,7 +265,7 @@ export const refreshAuthTokens = async (
   return toAuthResponse(user, {
     id: session.id,
     device_id: session.device_id
-  });
+  }, hashRefreshToken(refreshToken));
 };
 
 export const getAuthenticatedUser = async (auth: AuthContextDto) => {
@@ -264,7 +279,8 @@ export const getAuthenticatedUser = async (auth: AuthContextDto) => {
     id: user.id,
     email: user.email,
     name: user.name,
-    username: user.username
+    username: user.username,
+    role: user.role_code
   };
 };
 
