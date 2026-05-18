@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
-import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 
 import ENV_VARIABLES_CONFIG from "../../config/environment.js";
@@ -17,11 +16,8 @@ import {
   usernameExists,
   type AuthUserRecord
 } from "./auth.repository.js";
+import { accessTokenTtlSeconds, googleClient, passwordSaltRounds, refreshTokenTtlDays } from "./auth.constants.js";
 
-const googleClient = new OAuth2Client();
-const accessTokenTtlSeconds = 15 * 60;
-const refreshTokenTtlDays = 60;
-const passwordSaltRounds = 12;
 
 const requireEnv = (value: string | undefined, name: string) => {
   if (!value?.trim() || value.startsWith("PASTE_")) {
